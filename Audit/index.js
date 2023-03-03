@@ -3,10 +3,13 @@ const puppeteer = require('puppeteer');
 const isReachable = require('is-reachable');
 const URL = require("url").URL;
 const zlib = require('zlib');
+const fs = require('fs').promises;
+const path = require('path');
 
 module.exports = async function (context, req) {
 
     const urlToCheck = req.query.url;
+    const language = req.query.language;
 
     const asyncGzip = async buffer => {
         return new Promise((resolve, reject) => {
@@ -23,6 +26,15 @@ module.exports = async function (context, req) {
         return Buffer.from(JSON.stringify(data), 'utf-8');
     }
 
+    async function getLocaleData() {
+        try {
+            const data = await fs.readFile(path.resolve(__dirname + '/locales/' + language + '.json'), 'utf8');
+            return JSON.parse(data);
+        } catch(error) {
+            return null;
+        }  
+    }
+
     if(!urlToCheck) {
         return context.res = {
             headers: {
@@ -37,7 +49,7 @@ module.exports = async function (context, req) {
 
     try {
         new URL(urlToCheck);
-    } catch (err) {
+    } catch (error) {
         return context.res = {
             headers: {
                 'Content-Type': 'application/json'
@@ -82,11 +94,23 @@ module.exports = async function (context, req) {
         
         await page.goto(urlToCheck, {timeout: 10000});
 
-        const results = await new AxePuppeteer(page).options({resultTypes: [
+        let axeOptions = {
+            resultTypes: [
             'violations', 
             'passes',
             'incomplete'
-        ]}).analyze();
+            ]
+        }
+
+        let axeConfiguration = {};
+        if(language) {
+            const localeData = await getLocaleData();
+            if(localeData) {
+                axeConfiguration.locale = localeData;
+            }         
+        }
+
+        const results = await new AxePuppeteer(page).configure(axeConfiguration).options(axeOptions).analyze();
         
         await page.close();
         await browser.close();
@@ -97,7 +121,7 @@ module.exports = async function (context, req) {
                 'Content-Type': 'application/json',
                 'Content-Encoding': 'gzip'
             };
-            context.res.status = 200
+            context.res.status = 200;
             context.res.body = gzippedBuffer;
             return context.res;
 

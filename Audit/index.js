@@ -10,6 +10,7 @@ module.exports = async function (context, req) {
 
     const urlToCheck = req.query.url;
     const language = req.query.language;
+    const supportedLanguages = ['da-DK','de-DE','es-ES','fr-FR','he-IL','ja-JP','ko-KR','nb-NO','nl-NL','pl-PL','pt-BR'];
 
     const asyncGzip = async buffer => {
         return new Promise((resolve, reject) => {
@@ -103,7 +104,7 @@ module.exports = async function (context, req) {
         }
 
         let axeConfiguration = {};
-        if(language) {
+        if(language && supportedLanguages.indexOf(language) !== -1) {
             const localeData = await getLocaleData();
             if(localeData) {
                 axeConfiguration.locale = localeData;

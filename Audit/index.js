@@ -8,9 +8,12 @@ const path = require('path');
 
 module.exports = async function (context, req) {
 
+    const supportedLanguages = ['da-DK','de-DE','es-ES','fr-FR','he-IL','ja-JP','ko-KR','nb-NO','nl-NL','pl-PL','pt-BR'];
     const urlToCheck = req.query.url;
     const language = req.query.language;
-    const supportedLanguages = ['da-DK','de-DE','es-ES','fr-FR','he-IL','ja-JP','ko-KR','nb-NO','nl-NL','pl-PL','pt-BR'];
+    const tags = req.query.tags;
+    const selector = req.query.selector;
+    const excludeSelector = req.query.excludeSelector;
 
     const asyncGzip = async buffer => {
         return new Promise((resolve, reject) => {
@@ -110,13 +113,24 @@ module.exports = async function (context, req) {
                 axeConfiguration.locale = localeData;
             }         
         }
+        if(tags) {
+            axeOptions.runOnly = tags.split(',');
+        }
 
-        const results = await new AxePuppeteer(page).configure(axeConfiguration).options(axeOptions).analyze();
+        const results = await new AxePuppeteer(page)
+        .configure(axeConfiguration)
+        .include(selector || undefined)
+        .exclude(excludeSelector || undefined)
+        .options(axeOptions)
+        .analyze();
         
         await page.close();
         await browser.close();
 
         if(results) {
+            if(results.inapplicable) {
+                delete results.inapplicable;
+            }
             const gzippedBuffer = await asyncGzip(jsonToBuffer(results));   
             context.res.headers = {
                 'Content-Type': 'application/json',

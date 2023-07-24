@@ -11,5 +11,6 @@
   "extensionBundle": {
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[3.*, 4.0.0)"
-  }
+  },
+  "id": "c6c953c8901643c78b2e866fc0a3df64"
 }

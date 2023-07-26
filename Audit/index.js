@@ -6,9 +6,9 @@ const zlib = require('zlib');
 const fs = require('fs').promises;
 const path = require('path');
 
-module.exports = async function (context, req) {
+async function status(context, req) {
 
-    const supportedLanguages = ['da-DK','de-DE','es-ES','fr-FR','he-IL','ja-JP','ko-KR','nb-NO','nl-NL','pl-PL','pt-BR'];
+    const supportedLanguages = ['da-DK', 'de-DE', 'es-ES', 'fr-FR', 'he-IL', 'ja-JP', 'ko-KR', 'nb-NO', 'nl-NL', 'pl-PL', 'pt-BR'];
     const urlToCheck = req.query.url;
     const language = req.query.language;
     const tags = req.query.tags;
@@ -17,14 +17,14 @@ module.exports = async function (context, req) {
 
     const asyncGzip = async buffer => {
         return new Promise((resolve, reject) => {
-          zlib.gzip(buffer, {}, (error, gzipped) => {
-            if (error) {
-              reject(error);
-            }
-            resolve(gzipped);
-          })
+            zlib.gzip(buffer, {}, (error, gzipped) => {
+                if (error) {
+                    reject(error);
+                }
+                resolve(gzipped);
+            })
         })
-      }
+    }
 
     function jsonToBuffer(data) {
         return Buffer.from(JSON.stringify(data), 'utf-8');
@@ -32,14 +32,14 @@ module.exports = async function (context, req) {
 
     async function getLocaleData() {
         try {
-            const data = await fs.readFile(path.resolve(__dirname + '/locales/' + language + '.json'), 'utf8');
+            const data = await fs.readFile(path.resolve('C:\Users\Pasindu H\Desktop\Ascentic Projects\azure-function-accessibility-reporter-main\azure-function-accessibility-reporter-main\azure-function-accessibility-reporter\Audit\locales\/' + language + '.json'), 'utf8');
             return JSON.parse(data);
-        } catch(error) {
+        } catch (error) {
             return null;
-        }  
+        }
     }
 
-    if(!urlToCheck) {
+    if (!urlToCheck) {
         return context.res = {
             headers: {
                 'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ module.exports = async function (context, req) {
     }
 
     const canBeReached = await isReachable(urlToCheck);
-    if(!canBeReached) {
+    if (!canBeReached) {
         return context.res = {
             headers: {
                 'Content-Type': 'application/json'
@@ -80,7 +80,7 @@ module.exports = async function (context, req) {
 
     const browser = await puppeteer.launch({
         headless: true,
-        'args' : [
+        'args': [
             '--disable-gpu',
             '--disable-dev-shm-usage',
             '--disable-setuid-sandbox',
@@ -90,48 +90,48 @@ module.exports = async function (context, req) {
             '--single-process'
         ]
     });
-    
+
     const page = await browser.newPage();
     await page.setBypassCSP(true);
 
     try {
-        
-        await page.goto(urlToCheck, {timeout: 10000});
+
+        await page.goto(urlToCheck, { timeout: 10000 });
 
         let axeOptions = {
             resultTypes: [
-            'violations', 
-            'passes',
-            'incomplete'
+                'violations',
+                'passes',
+                'incomplete'
             ]
         }
 
         let axeConfiguration = {};
-        if(language && supportedLanguages.indexOf(language) !== -1) {
+        if (language && supportedLanguages.indexOf(language) !== -1) {
             const localeData = await getLocaleData();
-            if(localeData) {
+            if (localeData) {
                 axeConfiguration.locale = localeData;
-            }         
+            }
         }
-        if(tags) {
+        if (tags) {
             axeOptions.runOnly = tags.split(',');
         }
 
         const results = await new AxePuppeteer(page)
-        .configure(axeConfiguration)
-        .include(selector || undefined)
-        .exclude(excludeSelector || undefined)
-        .options(axeOptions)
-        .analyze();
-        
+            .configure(axeConfiguration)
+            .include(selector || undefined)
+            .exclude(excludeSelector || undefined)
+            .options(axeOptions)
+            .analyze();
+
         await page.close();
         await browser.close();
 
-        if(results) {
-            if(results.inapplicable) {
+        if (results) {
+            if (results.inapplicable) {
                 delete results.inapplicable;
             }
-            const gzippedBuffer = await asyncGzip(jsonToBuffer(results));   
+            const gzippedBuffer = await asyncGzip(jsonToBuffer(results));
             context.res.headers = {
                 'Content-Type': 'application/json',
                 'Content-Encoding': 'gzip'
@@ -151,7 +151,7 @@ module.exports = async function (context, req) {
                 }
             }
         }
-    } catch(error) {
+    } catch (error) {
         return context.res = {
             headers: {
                 'Content-Type': 'application/json'
@@ -164,3 +164,5 @@ module.exports = async function (context, req) {
     }
 
 }
+
+module.exports = status
